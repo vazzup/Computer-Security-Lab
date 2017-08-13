@@ -1,0 +1,47 @@
+#!/usr/bin/env python3
+
+def main():
+	import hmac, hashlib, socket
+	print('Enter file to be sent')
+	file_name = input().strip()
+	print('Enter the password of the file')
+	key = input().strip().encode('utf-8')
+	digest_creator = hmac.new(key, digestmod = hashlib.sha512)	#Create a digest creator
+	original_message = ''
+	with open(file_name, 'r+') as temp_file:	#Read Contents to be sent
+		original_message = temp_file.read()
+	original_message_bytes = original_message.encode('utf-8')	#Convert str to bytes
+	digest_creator.update(original_message_bytes)	#Update message of digest creator
+	original_digest = digest_creator.hexdigest()
+	original_digest_bytes = original_digest.encode('utf-8')
+	print('Sending file to receiver...')
+	server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)	#Initialize Server Socket
+	host_name = socket.gethostname()	#LocalHost
+	server_port = 13242	#Port Number
+	server_socket.bind((host_name, server_port))	#Start Server Socket
+	data_sent = False
+	server_socket.listen(1)	#How many connections is it expecting to listen for
+	client_socket, addr = server_socket.accept()	#Accept an incoming connection
+	client_socket.send(original_digest_bytes)	#Send Message Digest
+	ack = client_socket.recv(50000).decode('utf-8')	#Wait for ACK from receiver
+	client_socket.send(original_message_bytes)	#Send Message
+	ack = client_socket.recv(50000).decode('utf-8')	#Wait for Response from receiver
+	if ack == 'ACK':	#Password entered correctly
+		print('Authenticated!')
+	else:	#Password entered incorrecly
+		print('Authentication Failed..')
+		client_socket.close()
+		server_socket.close()
+		return
+	new_message = client_socket.recv(50000)	#Wait until receiver sends new, possibly edited message
+	digest_creator_new = hmac.new(key, new_message, digestmod = hashlib.sha512)	#Generate new Digest
+	unchanged = hmac.compare_digest(digest_creator_new.hexdigest(), digest_creator.hexdigest())
+	if unchanged:	#Digests are same, file is untouched
+		print('Unchanged!')
+	else:	#File has been changed
+		print('It has been changed')
+	client_socket.close()
+	server_socket.close()
+
+if __name__ == '__main__':
+	main()

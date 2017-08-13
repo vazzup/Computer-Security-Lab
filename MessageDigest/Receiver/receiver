@@ -1,0 +1,42 @@
+#!/usr/bin/env python3
+
+def main():
+	import hmac, hashlib, socket
+	client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)	#Initialize socket
+	host_name = socket.gethostname()	#LocalHost
+	port = 13242 #Port Number
+	client_socket.connect((host_name, port))	#Connect to server here
+	original_digest = client_socket.recv(50000)	#Receive original digest
+	client_socket.send('ACK'.encode('utf-8'))	#Send ACK
+	original_message = client_socket.recv(50000)	#Receive Message
+	print('Received original digest..')
+	print('Received message...')
+	print('Authenticating message...')
+	print('Enter password:')
+	key = input().strip().encode('utf-8')
+	digest_creator = hmac.new(key, original_message, digestmod = hashlib.sha512)	#Create Digest for message with entered key
+	authenticated = hmac.compare_digest(digest_creator.hexdigest().encode('utf-8'), original_digest)
+	if not authenticated:	#Incorrect Password
+		print('Authentication Failed')
+		client_socket.send('NACK'.encode('utf-8'))
+		client_socket.close()
+		return
+	print('Authenticated!')	#Correct Password!
+	client_socket.send('ACK'.encode('utf-8'))
+	with open('temp.txt', 'w+') as f:	#Write message to external file
+		f.write(original_message.decode('utf-8'))
+	print('You can now view the file as required...')
+	print('Enter "Done" when you are done editing / viewing the file')
+	while True:
+		x = input().strip().lower()
+		if x == "done":	#User is done viewing / modifying file
+			break
+	new_message = ""
+	with open('temp.txt', 'r+') as f:	#Read new message
+		new_message = f.read()
+	new_message_bytes = new_message.encode('utf-8')
+	client_socket.send(new_message_bytes) #Send new message
+	client_socket.close()
+
+if __name__ == '__main__':
+	main()
