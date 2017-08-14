@@ -42,11 +42,12 @@ int main(int argc, char *argv[])
 	printf("Opening done!\n");
 	/* Filtering the packets */
 	// Command used to get netmask
-	if(pcap_lookupnet(dev, &net, &mask, errbuf) == 1) {	
+	/* if(pcap_lookupnet(dev, &net, &mask, errbuf) == 1) {	
 		fprintf(stderr, "Can't get netmask for device %s\n", dev);
 		net = 0;
 		mask = 0;
 		printf("%u %u\n", net, mask);
+		return 1;
 	}
 	// Skipping the filter bit
 	// Compile given filter expressions 
@@ -69,7 +70,7 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "Couldn't install filter %s: %s\n", filter_exp, 
 															pcap_geterr(handle));
 		return(2);
-	}
+	}*/
 	// Ending the filter bit */
 	/* Start sniffing for packets */
 	packet = pcap_next(handle, &header);	// grab a packet
